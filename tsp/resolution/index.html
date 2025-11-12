@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Internal Notes Drop‑In</title>
+  <!-- API key source: CONFIG FILE ONLY (dropin.config.json or dropin_config.json in same folder) -->
+  <style>
+    :root { --bg:#0b0c10; --panel:#16181d; --ink:#e8e8e8; --muted:#a9b1ba; --accent:#59c3ff; --ok:#2ecc71; --warn:#ffb20f; --bad:#ff5277; }
+    html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Inter,sans-serif;background:#0b0c10;color:var(--ink)}
+    .wrap{max-width:1200px;margin:0 auto;padding:24px}
+    h1{font-size:20px;margin:0 0 12px}
+    .row{display:flex;gap:16px;flex-wrap:wrap}
+    .panel{background:var(--panel);border-radius:14px;padding:18px;box-shadow:0 2px 16px rgba(0,0,0,.25)}
+    .panel h2{margin:0 0 12px;font-size:16px}
+    label{font-size:12px;color:var(--muted);display:block;margin:10px 0 4px}
+    input[type=text], textarea, select{width:100%;box-sizing:border-box;background:#0f1115;color:var(--ink);border:1px solid #2a2f39;border-radius:10px;padding:10px 12px;outline:none}
+    textarea{min-height:96px;resize:vertical}
+    input[type=file]{color:var(--muted)}
+    .btn{appearance:none;border:0;border-radius:12px;padding:10px 14px;background:#1f2530;color:var(--ink);cursor:pointer;transition:.15s}
+    .btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+    .btn.primary{background:linear-gradient(135deg,#3aa1ff,#42ffd2);color:#001017;font-weight:700}
+    .btn.ghost{background:transparent;border:1px dashed #3b4352}
+    .inline{display:flex;gap:10px;align-items:center}
+    .chip{font-size:12px;padding:6px 8px;border-radius:999px;background:#0f1115;border:1px solid #2a2f39;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+    .col-6{grid-column:span 6}
+    .col-12{grid-column:span 12}
+    .col-4{grid-column:span 4}
+    .col-8{grid-column:span 8}
+    .muted{color:var(--muted)}
+    .outbox{white-space:pre-wrap;background:#0a0c10;border:1px solid #253041;border-radius:12px;padding:14px}
+    .doc{border:1px solid #2a2f39;border-radius:12px;padding:12px;margin-bottom:14px}
+    .right{margin-left:auto}
+    .small{font-size:12px}
+    .sep{height:1px;background:#222833;margin:20px 0}
+    .two-col{display:grid;grid-template-columns:1fr 1fr; gap:12px}
+    .toast{position:fixed;inset:auto 16px 16px auto;background:#0f1115;border:1px solid #2a2f39;border-radius:10px;padding:10px 12px;color:var(--ink);opacity:0;transform:translateY(6px);transition:.2s}
+    .toast.show{opacity:1;transform:translateY(0)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="inline" style="margin-bottom:8px">
+      <h1 style="margin-right:12px">Internal Notes Drop‑In</h1>
+      <span class="chip" id="apiStatus" title="Loads key from config only">API key: —</span>
+    </div>
+
+    <div class="row">
+      <div class="panel" style="flex:2 1 740px">
+        <h2>Requests</h2>
+        <div id="forms" aria-live="polite"></div>
+        <div class="inline" style="margin-top:8px">
+          <button class="btn ghost" id="addBtn">+ Add another request</button>
+          <span class="chip">Multiple requests supported</span>
+          <span class="right small muted">Logs optional; if omitted we’ll assume health is good unless your notes say otherwise.</span>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="grid">
+          <div class="col-12">
+            <h3 class="muted" style="margin:0 0 6px">Paste Google invite</h3>
+            <textarea id="inviteText" placeholder="Paste the full Google Calendar invite (title + details)"></textarea>
+            <div class="inline" style="margin-top:6px">
+              <button class="btn" id="parseInviteBtn">Parse & Add request</button>
+              <span class="small muted">We’ll extract array name, request type, serials, and notes automatically.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="two-col">
+          <div>
+            <h3 class="muted" style="margin:0 0 6px">Actions</h3>
+            <div class="inline">
+              <button class="btn primary" id="genBtn">Generate Outputs</button>
+              <button class="btn" id="loadCfgBtn" title="Reload config if present next to this file">Reload Config</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1 1 420px">
+        <h2>Outputs</h2>
+        <h3 style="margin:6px 0">Internal notes</h3>
+        <div class="inline" style="margin-bottom:6px">
+          <button class="btn" id="copyNotesBtn">Copy Internal Notes</button>
+        </div>
+        <div class="outbox" id="notesOutput" aria-live="polite"></div>
+        <div class="sep"></div>
+        <h3 style="margin:6px 0">Customer closing email</h3>
+        <div class="inline" style="margin-bottom:6px; flex-wrap:wrap">
+          <button class="btn" id="copySubjBtn">Copy Subject</button>
+          <button class="btn" id="copyBodyBtn">Copy Body</button>
+        </div>
+        <div class="outbox" id="emailSubject"></div>
+        <div class="outbox" id="emailBody" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// --- Default config (overridden by config files if present) ---
+let CFG = {
+  version: "1.5.0",
+  auth: { apiKey: "" },
+  noteTemplate: {
+    includeArrayNameReference: true,
+    labels: { summary: "Summary:", resolution: "Resolution:", nextSteps: "Next Steps:", sn: "SN:" },
+    separatorBetweenMultipleDocs: "\n---\n"
+  },
+  summary: {
+    successPhrases: { ndu: "Successful NDU", install: "Successful install", upgrade: "Successful upgrade", maintenance: "Successful maintenance", other: "Successful" },
+    failurePhrases: { ndu: "NDU encountered issues", install: "Install encountered issues", upgrade: "Upgrade encountered issues", maintenance: "Maintenance encountered issues", other: "Work encountered issues" }
+  },
+  resolution: { includeRequestType: true, includeArrayName: true, defaultHealthPhraseWhenNoLog: "all health checks good", healthPrefix: "drive health" },
+  nextSteps: { defaultWhenHealthy: "None", defaultWhenIssues: "Investigate drive health anomalies; open case if persists" },
+  serialNumbers: { separator: "," },
+  logParsing: { driveHealth: { keywordsHealthy: ["healthy","ok","passed"], keywordsBad:["fault","failed","degraded","rebuild","rebuilding","replaced","replace","warning"], maxLookbackLines:600, blockStartHints:["drive","list"], blockEndBlankLines:2 } },
+  multipleDocs: { allowMultiple:true },
+  customerEmail: {
+    subjectOne: "Completed {TYPE} on {ARRAY}",
+    subjectMany: "Completed work on {COUNT} arrays",
+    greeting: "Hi team,",
+    signoff: "Regards,\n<Your Name>",
+    bulletPrefix: "- ",
+    includeSerials: true,
+    includeHealth: true
+  },
+  inviteParsing: {
+    arrayLabelHints: ["array", "array name", "system", "flasharray"],
+    serialLabelHints: ["sn", "serial", "s/n", "serial numbers"],
+    typeHints: ["ndu", "non-disruptive", "upgrade", "install", "maintenance"]
+  }
+};
+
+// --- API key: CONFIG ONLY ---
+let KEY_SOURCE_LABEL = 'config';
+function maskKey(k){ if(!k) return ''; return k.length <= 10 ? '••••' : (k.slice(0,6) + '•••' + k.slice(-4)); }
+function resolveKeyFromCfg(){
+  const c = CFG || {};
+  const candidates = [c && c.auth && c.auth.apiKey, c && c.apiKey, c && c.OPENAI_API_KEY, c && c.auth && c.auth.OPENAI_API_KEY]
+    .map(function(x){ return (x||'').toString().trim(); })
+    .filter(function(x){ return !!x; });
+  return candidates[0] || '';
+}
+function updateApiStatusFromConfig(){
+  var el = document.getElementById('apiStatus');
+  var k = resolveKeyFromCfg();
+  if(!CFG.auth) CFG.auth = {};
+  CFG.auth.apiKey = k;
+  window.DROPIN_API_KEY = k;
+  el.textContent = k ? ('API key: ' + maskKey(k) + ' (' + KEY_SOURCE_LABEL + ')') : 'API key: MISSING (checked config)';
+}
+
+// --- Config loading (filenames + timeout + loose parsing) ---
+function stripComments(s){ return s.replace(/\/\/.*$/mg,'').replace(/\/\*[\s\S]*?\*\//g,''); }
+function parseLooseConfig(text){
+  var rxes = [
+    /"auth"\s*:\s*\{[^}]*"(apiKey|OPENAI_API_KEY)"\s*:\s*"([^"]+)"/i,
+    /"(apiKey|OPENAI_API_KEY)"\s*:\s*"([^"]+)"/i,
+    /\$?(OPENAI_API_KEY|apiKey)\s*[=:]\s*['"]([^'"\n]+)['"]/i
+  ];
+  for(var i=0;i<rxes.length;i++){
+    var m = text.match(rxes[i]);
+    if(m && m[2]) return { auth: { apiKey: m[2] } };
+  }
+  return null;
+}
+async function loadExternalConfig() {
+  var tryFiles = [
+    'dropin.config.json','dropin_config.json',
+    'Dropin.config.json','Dropin_config.json',
+    'Dropin.config','Dropin_config','config.json'
+  ];
+  var controller = new AbortController();
+  var timer = setTimeout(function(){ try { controller.abort(); } catch(e){} }, 3500);
+  var earlyTimer = setTimeout(function(){ updateApiStatusFromConfig(); }, 1200);
+  try {
+    for (var i=0;i<tryFiles.length;i++) {
+      try {
+        var f = tryFiles[i];
+        var url = new URL(f, location.href).toString();
+        url += (url.indexOf('?')>=0 ? '&' : '?') + 't=' + Date.now();
+        var res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        if (!res.ok) continue;
+        var text = await res.text();
+        var j=null; var usedLoose=false;
+        try { j = JSON.parse(text); }
+        catch(e1){ try { j = JSON.parse(stripComments(text)); } catch(e2){ j = parseLooseConfig(text); usedLoose = !!j; } }
+        if(!j) continue;
+        CFG = Object.assign({}, CFG, j);
+        if (usedLoose) KEY_SOURCE_LABEL = 'config*';
+        if (resolveKeyFromCfg()) break;
+      } catch(e) { /* continue */ }
+    }
+  } finally {
+    clearTimeout(timer);
+    clearTimeout(earlyTimer);
+    updateApiStatusFromConfig();
+  }
+}
+
+// --- UI refs ---
+const forms = document.getElementById('forms');
+const addBtn = document.getElementById('addBtn');
+const genBtn = document.getElementById('genBtn');
+const reloadBtn = document.getElementById('loadCfgBtn');
+const notesOutput = document.getElementById('notesOutput');
+const emailSubject = document.getElementById('emailSubject');
+const emailBody = document.getElementById('emailBody');
+const copyNotesBtn = document.getElementById('copyNotesBtn');
+const copySubjBtn = document.getElementById('copySubjBtn');
+const copyBodyBtn = document.getElementById('copyBodyBtn');
+const inviteText = document.getElementById('inviteText');
+const parseInviteBtn = document.getElementById('parseInviteBtn');
+
+addBtn.addEventListener('click', function(){ addForm(); });
+reloadBtn.addEventListener('click', function(){ loadExternalConfig(); toast('Config reload requested'); });
+parseInviteBtn.addEventListener('click', function(){
+  const t = inviteText.value.trim(); if(!t) return;
+  const pre = parseInvite(t); addForm(pre); inviteText.value=''; toast('Invite parsed → request added');
+});
+
+genBtn.addEventListener('click', function(){
+  if(inviteText && inviteText.value && inviteText.value.trim()){
+    const pre = parseInvite(inviteText.value.trim());
+    addForm(pre);
+    inviteText.value = '';
+  }
+  let records = collectRecords();
+  if(records.length === 0){
+    const doc = forms.querySelector('.doc');
+    if(doc){
+      const rec = getRecordFromDoc(doc, true);
+      records = [rec];
+    } else {
+      records = [{ array: 'UNKNOWN_ARRAY', rtype: 'other', success: true, outcome: '', sns: '', next: '', notes: '', otherNotes: '', health: { healthy:true, summary: CFG.resolution.defaultHealthPhraseWhenNoLog } }];
+    }
+  }
+  const blocks = collectBlocksFrom(records);
+  notesOutput.textContent = blocks.join(CFG.noteTemplate.separatorBetweenMultipleDocs || "\n---\n");
+  const email = buildCustomerEmail(records);
+  emailSubject.textContent = email.subject;
+  emailBody.textContent = email.body;
+  toast('Outputs generated');
+});
+
+copyNotesBtn.addEventListener('click', async function(){ await copyElText(notesOutput, 'Internal notes copied'); }); 
+copySubjBtn.addEventListener('click', async function(){ await copyElText(emailSubject, 'Email subject copied'); });
+copyBodyBtn.addEventListener('click', async function(){ await copyElText(emailBody, 'Email body copied'); });
+
+async function copyElText(el, msg){
+  const t = el.textContent; if(!t) return; try{ await navigator.clipboard.writeText(t); toast(msg||'Copied'); }catch(e){ toast('Copy failed'); }
+}
+function toast(text){ const t=document.getElementById('toast'); t.textContent=text; t.classList.add('show'); setTimeout(()=> t.classList.remove('show'), 1200); }
+
+// --- Forms ---
+function addForm(prefill){
+  prefill = prefill || {};
+  const idx = forms.children.length + 1;
+  const wrap = document.createElement('div');
+  wrap.className = 'doc';
+  wrap.innerHTML = (
+    '<div class="grid">' +
+      '<div class="col-4">' +
+        '<label>Array name *</label>' +
+        '<input type="text" name="array" placeholder="e.g., rochmn03-pfa-08-581" value="'+(prefill.array||'')+'" required />' +
+      '</div>' +
+      '<div class="col-4">' +
+        '<label>Request type/kind</label>' +
+        '<select name="rtype">' +
+          '<option value="ndu" '+(prefill.rtype==='ndu'?'selected':'')+'>NDU</option>' +
+          '<option value="upgrade" '+(prefill.rtype==='upgrade'?'selected':'')+'>Upgrade</option>' +
+          '<option value="install" '+(prefill.rtype==='install'?'selected':'')+'>Install</option>' +
+          '<option value="maintenance" '+(prefill.rtype==='maintenance'?'selected':'')+'>Maintenance</option>' +
+          '<option value="other" '+(!['ndu','upgrade','install','maintenance'].includes(prefill.rtype)?'selected':'')+'>Other</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="col-4">' +
+        '<label>Successful?</label>' +
+        '<div class="inline"><input type="checkbox" name="success" '+(prefill.success!==false? 'checked':'')+'> <span class="small">Tick for successful summary</span></div>' +
+      '</div>' +
+      '<div class="col-12">' +
+        '<label>Outcome (optional – appended to summary)</label>' +
+        '<input type="text" name="outcome" placeholder="e.g., all sites completed" value="'+(prefill.outcome||'')+'" />' +
+      '</div>' +
+      '<div class="col-8">' +
+        '<label>Serial numbers (comma‑separated)</label>' +
+        '<input type="text" name="sns" placeholder="PCTFJ21070052,PCTFJ20170009" value="'+(prefill.sns||'')+'" />' +
+      '</div>' +
+      '<div class="col-4">' +
+        '<label>Next steps (leave blank for defaults)</label>' +
+        '<input type="text" name="next" placeholder="None" value="'+(prefill.next||'')+'" />' +
+      '</div>' +
+      '<div class="col-6">' +
+        '<label>Notes (internal)</label>' +
+        '<textarea name="notes" placeholder="Optional internal context...">'+(prefill.notes||'')+'</textarea>' +
+      '</div>' +
+      '<div class="col-6">' +
+        '<label>Other notes (customer‑facing)</label>' +
+        '<textarea name="othernotes" placeholder="Anything additional for the customer email...">'+(prefill.othernotes||'')+'</textarea>' +
+      '</div>' +
+      '<div class="col-12">' +
+        '<label>Log (optional)</label>' +
+        '<input type="file" accept=".txt,.log" />' +
+        '<label class="small">or paste log text</label>' +
+        '<textarea name="logtext" placeholder="Paste text if not uploading a file">'+(prefill.logtext||'')+'</textarea>' +
+      '</div>' +
+      '<div class="col-12 inline">' +
+        '<span class="chip">Request #'+idx+'</span>' +
+        '<button class="btn right" type="button">Remove</button>' +
+      '</div>' +
+    '</div>'
+  );
+  const file = wrap.querySelector('input[type=file]');
+  const logtext = wrap.querySelector('textarea[name=logtext]');
+  const rm = wrap.querySelector('button.btn.right');
+  file.addEventListener('change', async function(){ const f=file.files && file.files[0]; if(!f) return; const txt=await f.text(); logtext.value=txt; });
+  rm.addEventListener('click', function(){ wrap.remove(); });
+  forms.appendChild(wrap);
+}
+
+function collectRecords(){
+  const records = [];
+  const docs = forms.querySelectorAll('.doc');
+  for(let i=0;i<docs.length;i++){
+    const rec = getRecordFromDoc(docs[i], false);
+    if(rec) records.push(rec);
+  }
+  return records;
+}
+
+function getRecordFromDoc(doc, allowEmpty){
+  const array = (doc.querySelector('input[name=array]')?.value||'').trim();
+  const rtype = (doc.querySelector('select[name=rtype]')?.value||'other');
+  const success = !!doc.querySelector('input[name=success]')?.checked;
+  const outcome = (doc.querySelector('input[name=outcome]')?.value||'').trim();
+  const sns = (doc.querySelector('input[name=sns]')?.value||'').trim();
+  const next = (doc.querySelector('input[name=next]')?.value||'').trim();
+  const notes = (doc.querySelector('textarea[name=notes]')?.value||'').trim();
+  const otherNotes = (doc.querySelector('textarea[name=othernotes]')?.value||'').trim();
+  const logtext = (doc.querySelector('textarea[name=logtext]')?.value||'');
+  if(!array && !allowEmpty) return null;
+  const health = deriveHealth(logtext, notes);
+  return { array: array || 'UNKNOWN_ARRAY', rtype, success, outcome, sns, next, notes, otherNotes, health };
+}
+
+function collectBlocksFrom(records){ return records.map(function(r){ return renderInternalBlock(r); }); }
+
+// --- Internal notes block (EXACT labels) ---
+function renderInternalBlock(obj){
+  var array=obj.array, rtype=obj.rtype, success=obj.success, outcome=obj.outcome, sns=obj.sns, next=obj.next, health=obj.health;
+  const L = CFG.noteTemplate.labels; const rKey=(rtype||'other').toLowerCase();
+  const sPhrase = success ? (CFG.summary.successPhrases[rKey]||CFG.summary.successPhrases.other)
+                          : (CFG.summary.failurePhrases[rKey]||CFG.summary.failurePhrases.other);
+  const outcomePart = outcome ? (' ' + outcome) : '';
+  const summaryLine = (L.summary + ' ' + sPhrase + ' ' + array + outcomePart).trim();
+  const typeWord = rKey.toUpperCase();
+  const healthPhrase = health.summary;
+  const resolutionLine = L.resolution + ' ' + typeWord + ' on ' + array + '; ' + healthPhrase;
+  const hasSN = !!formatSNs(sns);
+  let nextComputed = next && next.trim() ? next.trim() : (hasSN ? ('Return units (SN: ' + formatSNs(sns) + ')') : (health.healthy ? CFG.nextSteps.defaultWhenHealthy : CFG.nextSteps.defaultWhenIssues));
+  if(/return|ship|rma/i.test(nextComputed) && hasSN && !/\(SN:/i.test(nextComputed)){ nextComputed += ' (SN: ' + formatSNs(sns) + ')'; }
+  const nextLine = L.nextSteps + ' ' + nextComputed;
+  const snLine = (L.sn + ' ' + formatSNs(sns)).trimEnd();
+  const firstRef = CFG.noteTemplate.includeArrayNameReference ? (array + '\n') : '';
+  return firstRef + summaryLine + '\n' + resolutionLine + '\n' + nextLine + '\n' + snLine;
+}
+
+// --- Customer email builder ---
+function buildCustomerEmail(records){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'});
+  let subject='';
+  if(records.length===1){
+    const r=records[0]; const type=(r.rtype||'Work').toUpperCase(); const status=r.success? 'Successful' : 'Issues';
+    subject = (CFG.customerEmail.subjectOne||'Completed {TYPE} on {ARRAY}').replace('{TYPE}', type).replace('{ARRAY}', r.array) + ' - ' + status;
+  } else {
+    subject = (CFG.customerEmail.subjectMany||'Completed work on {COUNT} arrays').replace('{COUNT}', String(records.length));
+  }
+  const lines=[]; lines.push(CFG.customerEmail.greeting||'Hi team,'); lines.push('');
+  if(records.length===1){
+    const r = records[0];
+    const type=(r.rtype||'work');
+    const successText = r.success ? 'successfully' : 'with issues';
+    lines.push('We completed the ' + type.toUpperCase() + ' on ' + r.array + ' ' + successText + '.');
+    if(r.outcome) lines.push('Outcome: ' + r.outcome);
+    if(CFG.customerEmail.includeHealth!==false && r.health && r.health.summary){ lines.push('Health: ' + r.health.summary); }
+    lines.push('');
+    lines.push('Next steps:');
+    {
+      let _sns = formatSNs(r.sns);
+      let nextText = (r.next && r.next.trim()) ? r.next.trim() : (_sns ? `Return units (SN: ${_sns})` : 'None');
+      if(/return|ship|rma/i.test(nextText) && _sns && !/\(SN:/i.test(nextText)) { nextText += ` (SN: ${_sns})`; }
+      lines.push('- ' + nextText);
+    }
+    lines.push('');
+    lines.push('Returning SN(s):');
+    lines.push('- ' + (formatSNs(r.sns) || 'None'));
+  } else {
+    lines.push('We completed the requested work on ' + dateStr + '. Details below:');
+    lines.push('');
+    records.forEach(function(r,i){
+      const type=(r.rtype||'work').toUpperCase();
+      const status=r.success? 'Successful' : 'Issues';
+      const outcomeBit = r.outcome ? (' — ' + r.outcome) : '';
+      if(i>0) lines.push('');
+      lines.push((CFG.customerEmail.bulletPrefix||'- ') + 'Array: ' + r.array);
+      lines.push('  Request: ' + type);
+      lines.push('  Status: ' + status + outcomeBit);
+      if(CFG.customerEmail.includeHealth!==false && r.health && r.health.summary){ lines.push('  Health: ' + r.health.summary); }
+      {
+      let _sns = formatSNs(r.sns);
+      let nextText = (r.next && r.next.trim()) ? r.next.trim() : (_sns ? `Return units (SN: ${_sns})` : 'None');
+      if(/return|ship|rma/i.test(nextText) && _sns && !/\(SN:/i.test(nextText)) { nextText += ` (SN: ${_sns})`; }
+      lines.push('  Next steps: ' + nextText);
+    }
+      lines.push('  Returning SN(s): ' + (formatSNs(r.sns) || 'None'));
+    });
+  }
+  lines.push(''); lines.push(CFG.customerEmail.signoff||'Regards,\n<Your Name>');
+  return { subject: subject, body: lines.join('\n') };
+}
+
+function formatSNs(sns){ if(!sns) return ''; return sns.split(/[\s,;]+/).filter(Boolean).join(CFG.serialNumbers.separator+' '); }
+
+// --- Health parsing ---
+function deriveHealth(logtext, notes){
+  if(!logtext || !logtext.trim()){
+    const neg=new RegExp(CFG.logParsing.driveHealth.keywordsBad.join('|'),'i');
+    const healthy=!neg.test((notes||''));
+    return { healthy: healthy, summary: healthy ? CFG.resolution.defaultHealthPhraseWhenNoLog : 'issues noted in notes' };
+  }
+  const lines=logtext.split(/\r?\n/); const startIdx=findLastDriveBlockStart(lines);
+  if(startIdx===-1){ return { healthy:true, summary: CFG.resolution.defaultHealthPhraseWhenNoLog + ' (no drive list found)' }; }
+  const block=collectBlock(lines,startIdx); const stats=analyzeDriveBlock(block.join('\n'));
+  const prefix=CFG.resolution.healthPrefix||'drive health';
+  const summary=stats.total>0? (prefix + ': ' + stats.healthy + '/' + stats.total + ' healthy' + (stats.bad>0?(', ' + stats.bad + ' issue' + (stats.bad>1?'s':'')) : '')) : (CFG.resolution.defaultHealthPhraseWhenNoLog + ' (parsed 0 drives)');
+  return { healthy: stats.bad===0, summary: summary, details: stats };
+}
+function findLastDriveBlockStart(lines){ const hints=(CFG.logParsing.driveHealth.blockStartHints||['drive','list']).map(function(s){return String(s).toLowerCase();}); for(let i=lines.length-1;i>=0;i--){ const L=String(lines[i]||'').toLowerCase(); const hasAll=hints.every(function(h){return L.indexOf(h)>=0;}); const looksLike=/(slot|bay|drive).*?(state|status)/i.test(lines[i]||''); if(hasAll||looksLike) return i;} return -1; }
+function collectBlock(lines,start){ const out=[]; let blanks=0; const maxLook=CFG.logParsing.driveHealth.maxLookbackLines||400; for(let i=start;i<Math.min(lines.length,start+maxLook);i++){ const ln=lines[i]; out.push(ln); if(/^\s*$/.test(ln)) blanks++; else blanks=0; if(blanks>=(CFG.logParsing.driveHealth.blockEndBlankLines||2)) break;} return out; }
+function analyzeDriveBlock(text){ const lines=text.split(/\r?\n/); const healthyRx=new RegExp(CFG.logParsing.driveHealth.keywordsHealthy.join('|'),'i'); const badRx=new RegExp(CFG.logParsing.driveHealth.keywordsBad.join('|'),'i'); let healthy=0,bad=0,total=0; let badLabels=[]; for(const ln of lines){ if(/\bdrive\b|\bslot\b|\bbay\b|\bserial\b|\bid\b|status|state/i.test(ln)){ if(healthyRx.test(ln)){ healthy++; total++; } else if(badRx.test(ln)){ bad++; total++; badLabels.push((ln||'').trim()); } else if(/\b(status|state)\b/i.test(ln)){ total++; } } } return { healthy:healthy,bad:bad,total:total,badLines:badLabels }; }
+
+// --- Invite parsing ---
+function parseInvite(t){ const lower=(t||'').toLowerCase(); let rtype='other'; if(/\bndu\b|non-?disruptive/.test(lower)) rtype='ndu'; else if(/\bupgrade\b/.test(lower)) rtype='upgrade'; else if(/\binstall(ation)?\b/.test(lower)) rtype='install'; else if(/\bmaintenance\b|\bpm\b/.test(lower)) rtype='maintenance'; let array=''; const labelHints=(CFG.inviteParsing && CFG.inviteParsing.arrayLabelHints)||[]; const lines=String(t||'').split(/\r?\n/); for(let i=0;i<lines.length && !array;i++){ const ln=lines[i]; for(let j=0;j<labelHints.length;j++){ const h=labelHints[j]; const rx=new RegExp('^\\s*'+h+'\\s*[:：]\\s*(.+)$','i'); const m=ln.match(rx); if(m){ array=m[1].trim(); break; } } } if(!array){ const m=t.match(/[A-Za-z0-9]{2,}(?:-[A-Za-z0-9]{1,}){2,}/); if(m) array=m[0]; } let sns=[]; const snLines=lines.filter(function(ln){return /(sn|serial|s\/?n)/i.test(ln);}); for(let i=0;i<snLines.length;i++){ const found=snLines[i].match(/[A-Z0-9]{8,14}/g); if(found) sns.push.apply(sns, found);} sns=Array.from(new Set(sns)); return { array: array, rtype: rtype, success:true, sns: sns.join(','), notes: t };
+}
+
+// --- Bootstrap ---
+function bootstrap(){
+  addForm({ success:true });
+  loadExternalConfig();
+}
+bootstrap();
+</script>
+</body>
+</html>

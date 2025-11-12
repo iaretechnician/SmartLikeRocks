@@ -1,0 +1,6 @@
+# Ignore local secret files
+dbtest.php
+.env
+# Secrets
+tsp/resolution/dropin.config.json
+pure/purebot.php
