@@ -3,7 +3,6 @@
         <ul class="main-nav">
 
             <li><a href="purekb.php?page=reconfigure">Reconfigure Array</a></li>
-            <li><a href="purekb.php?page=askyourself">AT&T Ask Yourself</a></li>
             <li><a href="purekb.php?page=portsprotocols">Ports & Protocols</a></li>
             <li><a href="purekb.php?page=pureissues">Errors</a></li>
             <li><a href="purekb.php?page=pureftp">Purity Versions</a></li>

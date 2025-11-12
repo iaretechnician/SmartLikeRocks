@@ -3,6 +3,7 @@
         <ul class="main-nav">
 
             <li><a href="tspkb.php?page=newhire">New Hire</a></li>
+            <li><a href="tspkb.php?page=askyourself">AT&T Ask Yourself</a></li>
             <li><a href="sendlostreceipt.php">Lost Receipt</a></li>
             <li><a href="tspkb/TSP Employee Handbook.pdf" target="_blank">Employee Handbook</a></li>
 
