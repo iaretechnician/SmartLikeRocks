@@ -1,0 +1,13 @@
+---
+# cPanel Git deployment configuration
+# See cPanel docs for more details: https://docs.cpanel.net/knowledge-base/cpanel-feature/git-version-control/
+# This deploys the entire repository to the document root using rsync (excludes .git and other metadata)
+
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/domainpl/smartlike.rocks
+    - echo "Deploying repository to $DEPLOYPATH"
+    - /usr/bin/rsync -a --delete --exclude='.git' --exclude='.github' --exclude='*.zip' --exclude='*.gz' ./ "$DEPLOYPATH"
+    - /usr/bin/find "$DEPLOYPATH" -type d -exec chmod 755 {} +
+    - /usr/bin/find "$DEPLOYPATH" -type f -exec chmod 644 {} +
+    - echo "Deployment completed"
