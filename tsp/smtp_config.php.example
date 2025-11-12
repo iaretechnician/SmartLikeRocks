@@ -1,0 +1,17 @@
+<?php
+// Example SMTP config for /tsp/send_email.php
+// Copy this file to smtp_config.php and fill in real values on your server.
+return [
+    // SMTP host (IP or hostname)
+    'host' => 'smtp.example.com',
+    // port: 587 for STARTTLS, 465 for SSL
+    'port' => 587,
+    // SMTP username and password
+    'username' => 'smtp-user@example.com',
+    'password' => 'changeme',
+    // 'tls', 'ssl' or null
+    'encryption' => 'tls',
+    // from email and optional friendly name
+    'from_email' => 'no-reply@example.com',
+    'from_name' => 'TSP Lost Receipt',
+];

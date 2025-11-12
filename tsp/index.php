@@ -23,9 +23,9 @@
 <body>
 <header class="header" id="header">
 	<div class="container">
-    	<figure class="logo animated fadeInDown delay-07s">
-        	<a href="tsp.php"><img src="../img/tsp_primary_logo.svg" alt="TSP"></a>	
-        </figure>	
+    <figure class="logo animated fadeInDown delay-07s">
+    	<a href="/tsp/"><img src="../img/tsp_primary_logo.svg" alt="TSP"></a>	
+    </figure>
         <h1 class="animated fadeInDown delay-07s">TSP Project</h1>
         <ul class="we-create animated fadeInUp delay-1s">
         	<li>Employee Resources & Tools</li>

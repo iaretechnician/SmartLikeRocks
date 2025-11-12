@@ -63,7 +63,7 @@
             <div class="col-lg-6 col-sm-6 wow fadeInRight delay-05s">
                 <div class="service-list" style="border: 1px solid #ddd; padding: 30px; margin-bottom: 30px; border-radius: 5px; min-height: 280px;">
                     <div class="service-list-col1">
-                        <i class="fa fa-briefcase" style="font-size: 48px; color: #0066cc;"></i>
+                        <img src="img/tsp_primary_logo.svg" alt="TSP" style="height:48px; width:auto;">
                     </div>
                     <div class="service-list-col2">
                         <h3 style="margin-top: 0;"><a href="tsp/">TSP Project</a></h3>

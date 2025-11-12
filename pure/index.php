@@ -23,9 +23,9 @@
 <body>
 <header class="header" id="header">
 	<div class="container">
-    	<figure class="logo animated fadeInDown delay-07s">
-        	<a href="pure.php"><img src="../img/purelogo-tr.png" alt="Pure Storage"></a>	
-        </figure>	
+    <figure class="logo animated fadeInDown delay-07s">
+    	<a href="/pure/"><img src="../img/purelogo-tr.png" alt="Pure Storage"></a>	
+    </figure>
         <h1 class="animated fadeInDown delay-07s">Pure Storage Project</h1>
         <ul class="we-create animated fadeInUp delay-1s">
         	<li>Knowledge Base & Certification Resources</li>

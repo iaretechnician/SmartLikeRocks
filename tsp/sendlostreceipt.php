@@ -88,7 +88,7 @@
 <div class="form-container">
     <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Lost Receipt Request</h2>
 
-    <form id="emailForm" action="send_email.php" method="POST">
+    <form id="emailForm" action="/tsp/send_email.php" method="POST">
         <!-- Email Information -->
         <div class="mb-6">
               <div class="form-group mb-4">

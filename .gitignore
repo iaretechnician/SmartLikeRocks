@@ -4,3 +4,5 @@ dbtest.php
 # Secrets
 tsp/resolution/dropin.config.json
 pure/purebot.php
+# Local SMTP config for TSP (server-only)
+tsp/smtp_config.php
